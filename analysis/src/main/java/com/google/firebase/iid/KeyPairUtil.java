@@ -4,9 +4,9 @@ import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.NoSuchAlgorithmException;
 
-public final class zza {
+public final class KeyPairUtil {
 
-   public static KeyPair zzaso() {
+   public static KeyPair generateKeyPair() {
       try {
          KeyPairGenerator var0;
          (var0 = KeyPairGenerator.getInstance("RSA")).initialize(2048);

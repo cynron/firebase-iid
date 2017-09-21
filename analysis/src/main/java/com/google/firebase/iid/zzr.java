@@ -7,7 +7,7 @@ import android.util.Base64;
 import android.util.Log;
 import com.google.android.gms.common.util.zzt;
 import com.google.firebase.iid.FirebaseInstanceId;
-import com.google.firebase.iid.zza;
+import com.google.firebase.iid.KeyPairUtil;
 import com.google.firebase.iid.zzs;
 import java.io.File;
 import java.io.IOException;
@@ -133,14 +133,14 @@ final class zzr {
    }
 
    final synchronized KeyPair zzpw(String var1) {
-      KeyPair var2 = zza.zzaso();
+      KeyPair keyPair = KeyPairUtil.generateKeyPair();
       long var3 = System.currentTimeMillis();
       Editor var5;
-      (var5 = this.zzhud.edit()).putString(zzbl(var1, "|P|"), FirebaseInstanceId.zzm(var2.getPublic().getEncoded()));
-      var5.putString(zzbl(var1, "|K|"), FirebaseInstanceId.zzm(var2.getPrivate().getEncoded()));
+      (var5 = this.zzhud.edit()).putString(zzbl(var1, "|P|"), FirebaseInstanceId.zzm(keyPair.getPublic().getEncoded()));
+      var5.putString(zzbl(var1, "|K|"), FirebaseInstanceId.zzm(keyPair.getPrivate().getEncoded()));
       var5.putString(zzbl(var1, "cre"), Long.toString(var3));
       var5.commit();
-      return var2;
+      return keyPair;
    }
 
    final synchronized void zzpx(String var1) {
