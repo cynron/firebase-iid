@@ -20,19 +20,19 @@ import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.X509EncodedKeySpec;
 import java.util.Iterator;
 
-final class zzr {
+final class SharedPrefsHelper {
 
-   SharedPreferences zzhud;
-   private Context zzaie;
+   SharedPreferences prefs;
+   private Context ctx;
 
 
-   public zzr(Context var1) {
-      this(var1, "com.google.android.gms.appid");
+   public SharedPrefsHelper(Context ctx) {
+      this(ctx, "com.google.android.gms.appid");
    }
 
-   private zzr(Context var1, String var2) {
-      this.zzaie = var1;
-      this.zzhud = var1.getSharedPreferences(var2, 0);
+   private SharedPrefsHelper(Context ctx, String var2) {
+      this.ctx = ctx;
+      this.prefs = ctx.getSharedPreferences(var2, 0);
       String var10001 = String.valueOf(var2);
       String var10002 = String.valueOf("-no-backup");
       if(var10002.length() != 0) {
@@ -45,8 +45,8 @@ final class zzr {
       }
 
       String var4 = var10001;
-      zzr var3 = this;
-      File var5 = zzt.getNoBackupFilesDir(this.zzaie);
+      SharedPrefsHelper var3 = this;
+      File var5 = zzt.getNoBackupFilesDir(this.ctx);
       File var6;
       if(!(var6 = new File(var5, var4)).exists()) {
          try {
@@ -69,7 +69,7 @@ final class zzr {
    public final synchronized long zzpv(String var1) {
       String var2 = zzbl(var1, "cre");
       String var3;
-      if((var3 = this.zzhud.getString(var2, (String)null)) != null) {
+      if((var3 = this.prefs.getString(var2, (String)null)) != null) {
          try {
             return Long.parseLong(var3);
          } catch (NumberFormatException var4) {
@@ -81,7 +81,7 @@ final class zzr {
    }
 
    public final synchronized boolean isEmpty() {
-      return this.zzhud.getAll().isEmpty();
+      return this.prefs.getAll().isEmpty();
    }
 
    private static String zzn(String var0, String var1, String var2) {
@@ -95,8 +95,8 @@ final class zzr {
    }
 
    private final void zzht(String var1) {
-      Editor var2 = this.zzhud.edit();
-      Iterator var3 = this.zzhud.getAll().keySet().iterator();
+      Editor var2 = this.prefs.edit();
+      Iterator var3 = this.prefs.getAll().keySet().iterator();
 
       while(var3.hasNext()) {
          String var4;
@@ -109,18 +109,18 @@ final class zzr {
    }
 
    public final synchronized void zzasu() {
-      this.zzhud.edit().clear().commit();
+      this.prefs.edit().clear().commit();
    }
 
    public final synchronized zzs zzo(String var1, String var2, String var3) {
-      return zzs.zzpz(this.zzhud.getString(zzn(var1, var2, var3), (String)null));
+      return zzs.zzpz(this.prefs.getString(zzn(var1, var2, var3), (String)null));
    }
 
    public final synchronized void zza(String var1, String var2, String var3, String var4, String var5) {
       String var6;
       if((var6 = zzs.zzc(var4, var5, System.currentTimeMillis())) != null) {
          Editor var7;
-         (var7 = this.zzhud.edit()).putString(zzn(var1, var2, var3), var6);
+         (var7 = this.prefs.edit()).putString(zzn(var1, var2, var3), var6);
          var7.commit();
       }
    }
@@ -128,7 +128,7 @@ final class zzr {
    public final synchronized void zzf(String var1, String var2, String var3) {
       String var4 = zzn(var1, var2, var3);
       Editor var5;
-      (var5 = this.zzhud.edit()).remove(var4);
+      (var5 = this.prefs.edit()).remove(var4);
       var5.commit();
    }
 
@@ -136,7 +136,7 @@ final class zzr {
       KeyPair keyPair = KeyPairUtil.generateKeyPair();
       long var3 = System.currentTimeMillis();
       Editor var5;
-      (var5 = this.zzhud.edit()).putString(zzbl(var1, "|P|"), FirebaseInstanceId.zzm(keyPair.getPublic().getEncoded()));
+      (var5 = this.prefs.edit()).putString(zzbl(var1, "|P|"), FirebaseInstanceId.zzm(keyPair.getPublic().getEncoded()));
       var5.putString(zzbl(var1, "|K|"), FirebaseInstanceId.zzm(keyPair.getPrivate().getEncoded()));
       var5.putString(zzbl(var1, "cre"), Long.toString(var3));
       var5.commit();
@@ -152,8 +152,8 @@ final class zzr {
    }
 
    public final synchronized KeyPair zzpy(String var1) {
-      String var2 = this.zzhud.getString(zzbl(var1, "|P|"), (String)null);
-      String var3 = this.zzhud.getString(zzbl(var1, "|K|"), (String)null);
+      String var2 = this.prefs.getString(zzbl(var1, "|P|"), (String)null);
+      String var3 = this.prefs.getString(zzbl(var1, "|K|"), (String)null);
       if(var2 != null && var3 != null) {
          try {
             byte[] var4 = Base64.decode(var2, 8);
@@ -165,7 +165,7 @@ final class zzr {
          } catch (NoSuchAlgorithmException var9) {
             String var5 = String.valueOf(var9);
             Log.w("InstanceID/Store", (new StringBuilder(19 + String.valueOf(var5).length())).append("Invalid key stored ").append(var5).toString());
-            FirebaseInstanceId.zza(this.zzaie, this);
+            FirebaseInstanceId.zza(this.ctx, this);
             return null;
          }
       } else {

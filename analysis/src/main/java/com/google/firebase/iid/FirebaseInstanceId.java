@@ -14,7 +14,7 @@ import android.util.Log;
 import com.google.firebase.FirebaseApp;
 import com.google.firebase.iid.FirebaseInstanceIdService;
 import com.google.firebase.iid.zzj;
-import com.google.firebase.iid.zzk;
+import com.google.firebase.iid.TopicOpQueue;
 import com.google.firebase.iid.zzq;
 import com.google.firebase.iid.zzr;
 import com.google.firebase.iid.zzs;
@@ -26,11 +26,11 @@ import java.util.Map;
 
 public class FirebaseInstanceId {
 
-   private static Map zzhtf = new ArrayMap();
-   private static zzk zzmiw;
-   private final FirebaseApp zzmix;
+   private static Map instMap = new ArrayMap();
+   private static TopicOpQueue zzmiw;
+   private final FirebaseApp app;
    private final zzj zzmiy;
-   private final String zzmiz;
+   private final String projectId;
 
 
    public static FirebaseInstanceId getInstance() {
@@ -38,38 +38,38 @@ public class FirebaseInstanceId {
    }
 
    @Keep
-   public static synchronized FirebaseInstanceId getInstance(@NonNull FirebaseApp var0) {
+   public static synchronized FirebaseInstanceId getInstance(@NonNull FirebaseApp app) {
       FirebaseInstanceId var1;
-      if((var1 = (FirebaseInstanceId)zzhtf.get(var0.getOptions().getApplicationId())) == null) {
-         zzj var2 = zzj.zza(var0.getApplicationContext(), (Bundle)null);
+      if((var1 = (FirebaseInstanceId)instMap.get(app.getOptions().getApplicationId())) == null) {
+         zzj var2 = zzj.zza(app.getApplicationContext(), (Bundle)null);
          if(zzmiw == null) {
             zzmiw = new zzk(zzj.zzbyl());
          }
 
-         var1 = new FirebaseInstanceId(var0, var2);
-         zzhtf.put(var0.getOptions().getApplicationId(), var1);
+         var1 = new FirebaseInstanceId(app, var2);
+         instMap.put(app.getOptions().getApplicationId(), var1);
       }
 
       return var1;
    }
 
-   private FirebaseInstanceId(FirebaseApp var1, zzj var2) {
-      this.zzmix = var1;
+   private FirebaseInstanceId(FirebaseApp app, zzj var2) {
+      this.app = app;
       this.zzmiy = var2;
       String var4;
       String var5;
       String[] var6;
       String var7;
-      this.zzmiz = (var4 = this.zzmix.getOptions().getGcmSenderId()) != null?var4:((var5 = this.zzmix.getOptions().getApplicationId()).startsWith("1:")?((var6 = var5.split(":")).length < 2?null:((var7 = var6[1]).isEmpty()?null:var7)):var5);
-      if(this.zzmiz == null) {
+      this.projectId = (var4 = this.app.getOptions().getGcmSenderId()) != null?var4:((var5 = this.app.getOptions().getApplicationId()).startsWith("1:")?((var6 = var5.split(":")).length < 2?null:((var7 = var6[1]).isEmpty()?null:var7)):var5);
+      if(this.projectId == null) {
          throw new IllegalStateException("IID failing to initialize, FirebaseApp is missing project ID");
       } else {
-         FirebaseInstanceIdService.zza(this.zzmix.getApplicationContext(), this);
+         FirebaseInstanceIdService.zza(this.app.getApplicationContext(), this);
       }
    }
 
    public String getId() {
-      return zza(this.zzmiy.zzasp());
+      return generateId(this.zzmiy.zzasp());
    }
 
    public long getCreationTime() {
@@ -85,7 +85,7 @@ public class FirebaseInstanceId {
    public String getToken() {
       zzs var1;
       if((var1 = this.zzbyi()) == null || var1.zzqa(zzj.zzhtl)) {
-         FirebaseInstanceIdService.zzel(this.zzmix.getApplicationContext());
+         FirebaseInstanceIdService.zzel(this.app.getApplicationContext());
       }
 
       return var1 != null?var1.zzkmz:null;
@@ -93,11 +93,11 @@ public class FirebaseInstanceId {
 
    @Nullable
    final zzs zzbyi() {
-      return zzj.zzbyl().zzo("", this.zzmiz, "*");
+      return zzj.zzbyl().zzo("", this.projectId, "*");
    }
 
    final String zzbyj() throws IOException {
-      return this.getToken(this.zzmiz, "*");
+      return this.getToken(this.projectId, "*");
    }
 
    @WorkerThread
@@ -108,15 +108,15 @@ public class FirebaseInstanceId {
    }
 
    @WorkerThread
-   public void deleteToken(String var1, String var2) throws IOException {
+   public void deleteToken(String authorizedEntity, String scope) throws IOException {
       Bundle var3 = new Bundle();
       this.zzab(var3);
-      this.zzmiy.zza(var1, var2, var3);
+      this.zzmiy.zza(authorizedEntity, scope, var3);
    }
 
    public final void zzpq(String var1) {
       zzmiw.zzpq(var1);
-      FirebaseInstanceIdService.zzel(this.zzmix.getApplicationContext());
+      FirebaseInstanceIdService.zzel(this.app.getApplicationContext());
    }
 
    static zzk zzbyk() {
@@ -200,22 +200,22 @@ public class FirebaseInstanceId {
    }
 
    private final void zzab(Bundle var1) {
-      var1.putString("gmp_app_id", this.zzmix.getOptions().getApplicationId());
+      var1.putString("gmp_app_id", this.app.getOptions().getApplicationId());
    }
 
    static String zzm(byte[] var0) {
-      return Base64.encodeToString(var0, 11);
+      return Base64.encodeToString(var0, Base64.NO_PADDING | Base64.NO_WRAP | Base64.URL_SAFE);
    }
 
-   static String zza(KeyPair var0) {
-      byte[] var1 = var0.getPublic().getEncoded();
+   static String generateId(KeyPair kp) {
+      byte[] var1 = kp.getPublic().getEncoded();
 
       try {
          byte[] var2;
          byte var3 = (var2 = MessageDigest.getInstance("SHA1").digest(var1))[0];
          int var5 = 112 + (15 & var3);
          var2[0] = (byte)var5;
-         return Base64.encodeToString(var2, 0, 8, 11);
+         return Base64.encodeToString(var2, 0, 8, Base64.NO_PADDING | Base64.NO_WRAP | Base64.URL_SAFE);
       } catch (NoSuchAlgorithmException var4) {
          Log.w("FirebaseInstanceId", "Unexpected error, device missing required alghorithms");
          return null;
@@ -236,9 +236,9 @@ public class FirebaseInstanceId {
       }
    }
 
-   static String zzde(Context var0) {
+   static String zzde(Context ctx) {
       try {
-         return var0.getPackageManager().getPackageInfo(var0.getPackageName(), 0).versionName;
+         return ctx.getPackageManager().getPackageInfo(ctx.getPackageName(), 0).versionName;
       } catch (NameNotFoundException var3) {
          String var2 = String.valueOf(var3);
          Log.w("FirebaseInstanceId", (new StringBuilder(38 + String.valueOf(var2).length())).append("Never happens: can\'t find own package ").append(var2).toString());
@@ -246,17 +246,17 @@ public class FirebaseInstanceId {
       }
    }
 
-   static void zza(Context var0, zzr var1) {
+   static void zza(Context ctx, zzr var1) {
       var1.zzasu();
       Intent var2;
       (var2 = new Intent()).putExtra("CMD", "RST");
-      zzq.zzbyp().zze(var0, var2);
+      zzq.zzbyp().zze(ctx, var2);
    }
 
-   static void zzej(Context var0) {
+   static void zzej(Context ctx) {
       Intent var1;
       (var1 = new Intent()).putExtra("CMD", "SYNC");
-      zzq.zzbyp().zze(var0, var1);
+      zzq.zzbyp().zze(ctx, var1);
    }
 
 }

@@ -8,7 +8,7 @@ import android.support.v4.util.ArrayMap;
 import android.util.Log;
 import com.google.firebase.iid.FirebaseInstanceId;
 import com.google.firebase.iid.zzl;
-import com.google.firebase.iid.zzr;
+import com.google.firebase.iid.SharedPrefsHelper;
 import com.google.firebase.iid.zzs;
 import java.io.IOException;
 import java.security.KeyPair;
@@ -18,7 +18,7 @@ public final class zzj {
 
    private static Map zzhtf = new ArrayMap();
    private Context mContext;
-   private static zzr zzmjg;
+   private static SharedPrefsHelper prefs;
    private static zzl zzmjh;
    private KeyPair zzhti;
    private String zzhtj = "";
@@ -30,46 +30,46 @@ public final class zzj {
       this.zzhtj = var2;
    }
 
-   public static synchronized zzj zza(Context var0, Bundle var1) {
+   public static synchronized zzj zza(Context ctx, Bundle bundle) {
       String var2;
-      if((var2 = var1 == null?"":var1.getString("subtype")) == null) {
+      if((var2 = bundle == null?"":bundle.getString("subtype")) == null) {
          var2 = "";
       }
 
-      var0 = var0.getApplicationContext();
-      if(zzmjg == null) {
-         zzmjg = new zzr(var0);
-         zzmjh = new zzl(var0);
+      ctx = ctx.getApplicationContext();
+      if(prefs == null) {
+         prefs = new SharedPrefsHelper(ctx);
+         zzmjh = new zzl(ctx);
       }
 
-      zzhtl = Integer.toString(FirebaseInstanceId.zzei(var0));
+      zzhtl = Integer.toString(FirebaseInstanceId.zzei(ctx));
       zzj var3;
       if((var3 = (zzj)zzhtf.get(var2)) == null) {
-         var3 = new zzj(var0, var2, var1);
+         var3 = new zzj(ctx, var2, bundle);
          zzhtf.put(var2, var3);
       }
 
       return var3;
    }
 
-   final KeyPair zzasp() {
+   final KeyPair getKeyPair() {
       if(this.zzhti == null) {
-         this.zzhti = zzmjg.zzpy(this.zzhtj);
+         this.zzhti = prefs.restoreKeyPairFromPref(this.zzhtj);
       }
 
       if(this.zzhti == null) {
-         this.zzhti = zzmjg.zzpw(this.zzhtj);
+         this.zzhti = prefs.zzpw(this.zzhtj);
       }
 
       return this.zzhti;
    }
 
    public final long getCreationTime() {
-      return zzmjg.zzpv(this.zzhtj);
+      return prefs.zzpv(this.zzhtj);
    }
 
    public final void zzasq() {
-      zzmjg.zzpx(this.zzhtj);
+      prefs.zzpx(this.zzhtj);
       this.zzhti = null;
    }
 
@@ -77,7 +77,7 @@ public final class zzj {
       if(Looper.getMainLooper() == Looper.myLooper()) {
          throw new IOException("MAIN_THREAD");
       } else {
-         zzmjg.zzf(this.zzhtj, var1, var2);
+         prefs.zzf(this.zzhtj, var1, var2);
          if(var3 == null) {
             var3 = new Bundle();
          }
@@ -88,7 +88,7 @@ public final class zzj {
    }
 
    public static zzr zzbyl() {
-      return zzmjg;
+      return prefs;
    }
 
    public static zzl zzbym() {
@@ -102,7 +102,7 @@ public final class zzj {
          boolean var4 = true;
          if(var3.getString("ttl") == null && !"jwt".equals(var3.getString("type"))) {
             zzs var5;
-            if((var5 = zzmjg.zzo(this.zzhtj, var1, var2)) != null && !var5.zzqa(zzhtl)) {
+            if((var5 = prefs.zzo(this.zzhtj, var1, var2)) != null && !var5.zzqa(zzhtl)) {
                return var5.zzkmz;
             }
          } else {
@@ -111,7 +111,7 @@ public final class zzj {
 
          String var6;
          if((var6 = this.zzb(var1, var2, var3)) != null && var4) {
-            zzmjg.zza(this.zzhtj, var1, var2, var6, zzhtl);
+            prefs.zza(this.zzhtj, var1, var2, var6, zzhtl);
          }
 
          return var6;
@@ -128,7 +128,7 @@ public final class zzj {
       var3.putString("subtype", var4);
       var3.putString("X-subtype", var4);
       Intent var5;
-      if((var5 = zzmjh.zza(var3, this.zzasp())) == null) {
+      if((var5 = zzmjh.zza(var3, this.getKeyPair())) == null) {
          throw new IOException("SERVICE_NOT_AVAILABLE");
       } else {
          String var6;

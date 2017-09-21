@@ -2,43 +2,43 @@ package com.google.firebase.iid;
 
 import android.support.annotation.Nullable;
 import android.text.TextUtils;
-import com.google.firebase.iid.zzr;
+import com.google.firebase.iid.SharedPrefsHelper;
 
-public final class zzk {
+public final class TopicOpQueue {
 
-   private static final Object zzaqm = new Object();
-   private final zzr zzmji;
+   private static final Object lock = new Object();
+   private final SharedPrefsHelper prefs;
 
 
-   zzk(zzr var1) {
-      this.zzmji = var1;
+   TopicOpQueue(zzr var1) {
+      this.prefs = var1;
    }
 
    final void zzpq(String var1) {
-      Object var2 = zzaqm;
-      synchronized(zzaqm) {
-         String var4 = this.zzmji.zzhud.getString("topic_operaion_queue", "");
+      Object var2 = lock;
+      synchronized(lock) {
+         String var4 = this.prefs.zzhud.getString("topic_operaion_queue", "");
          String var5 = ",";
          String var3 = (new StringBuilder(String.valueOf(var4).length() + String.valueOf(var5).length() + String.valueOf(var1).length())).append(var4).append(var5).append(var1).toString();
-         this.zzmji.zzhud.edit().putString("topic_operaion_queue", var3).apply();
+         this.prefs.zzhud.edit().putString("topic_operaion_queue", var3).apply();
       }
    }
 
    @Nullable
    final String zzbyn() {
-      Object var1 = zzaqm;
-      synchronized(zzaqm) {
+      Object var1 = lock;
+      synchronized(lock) {
          String var2;
          String[] var3;
-         return (var2 = this.zzmji.zzhud.getString("topic_operaion_queue", (String)null)) != null && (var3 = var2.split(",")).length > 1 && !TextUtils.isEmpty(var3[1])?var3[1]:null;
+         return (var2 = this.prefs.zzhud.getString("topic_operaion_queue", (String)null)) != null && (var3 = var2.split(",")).length > 1 && !TextUtils.isEmpty(var3[1])?var3[1]:null;
       }
    }
 
    final boolean zzpu(String var1) {
-      Object var2 = zzaqm;
-      synchronized(zzaqm) {
+      Object var2 = lock;
+      synchronized(lock) {
          String var3;
-         String var10000 = var3 = this.zzmji.zzhud.getString("topic_operaion_queue", "");
+         String var10000 = var3 = this.prefs.zzhud.getString("topic_operaion_queue", "");
          String var10001 = String.valueOf(",");
          String var10002 = String.valueOf(var1);
          if(var10002.length() != 0) {
@@ -64,7 +64,7 @@ public final class zzk {
 
             int var4 = var10000.length();
             var3 = var3.substring(var4);
-            this.zzmji.zzhud.edit().putString("topic_operaion_queue", var3).apply();
+            this.prefs.zzhud.edit().putString("topic_operaion_queue", var3).apply();
             return true;
          } else {
             return false;
