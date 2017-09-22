@@ -218,6 +218,47 @@ public class FirebaseInstanceIdService extends zzb {
       }
    }
 
+   static public class Receiver extends BroadcastReceiver {
+   
+	  @Nullable
+	  private static BroadcastReceiver receiver;
+	  private int retryDelay;
+   
+   
+	  static synchronized void start(Context ctx, int delay) {
+		 if(receiver == null) {
+			receiver = new Receiver(delay);
+			ctx.getApplicationContext().registerReceiver(receiver, new IntentFilter("android.net.conn.CONNECTIVITY_CHANGE"));
+		 }
+	  }
+   
+	  private Receiver(int retry) {
+		 this.retryDelay = retry;
+	  }
+   
+	  public void onReceive(Context ctx, Intent intent) {
+		 Class var3 = Receiver.class;
+		 synchronized(Receiver.class) {
+			if(receiver != this) {
+			   return;
+			}
+   
+			if(!FirebaseInstanceIdService.isConnected(ctx)) {
+			   return;
+			}
+   
+			if(Log.isLoggable("FirebaseInstanceId", 3)) {
+			   Log.d("FirebaseInstanceId", "connectivity changed. starting background sync.");
+			}
+   
+			ctx.getApplicationContext().unregisterReceiver(this);
+			receiver = null;
+		 }
+   
+		 ReceiverUtil.getInstance().handleIdEvent(ctx, FirebaseInstanceIdService.createIntentDelay(this.retryDelay));
+	  }
+   }
+
    private final void handleError(Intent intent, String var2) {
       boolean var3 = isConnectedInternal(this);
       int var10;
@@ -235,13 +276,13 @@ public class FirebaseInstanceIdService extends zzb {
          var10 = 28800;
       }
 
-      int var4 = var10;
+      int delay = var10;
       Log.d("FirebaseInstanceId", (new StringBuilder(47 + String.valueOf(var2).length())).append("background sync failed: ").append(var2).append(", retry in ").append(var10).append("s").toString());
       Object var5 = lock;
       synchronized(lock) {
          AlarmManager var9 = (AlarmManager)this.getSystemService("alarm");
-         PendingIntent var12 = ReceiverUtil.createIdEventPendingIntent(this, 0, createIntentDelayInternal(var4 << 1), 134217728);
-         var9.set(3, SystemClock.elapsedRealtime() + (long)(var4 * 1000), var12);
+         PendingIntent var12 = ReceiverUtil.createIdEventPendingIntent(this, 0, createIntentDelayInternal(delay << 1), 134217728);
+         var9.set(3, SystemClock.elapsedRealtime() + (long)(delay * 1000), var12);
          isPending = true;
       }
 
@@ -250,7 +291,7 @@ public class FirebaseInstanceIdService extends zzb {
             Log.d("FirebaseInstanceId", "device not connected. Connectivity change received registered");
          }
 
-         zza.zzl(this, var4);
+         Receiver.start(this, delay);
       }
 
    }
