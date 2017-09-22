@@ -13,7 +13,7 @@ import android.support.annotation.WorkerThread;
 import android.util.Log;
 import com.google.firebase.iid.FirebaseInstanceId;
 import com.google.firebase.iid.zzb;
-import com.google.firebase.iid.zzj;
+import com.google.firebase.iid.KeyPairStore;
 import com.google.firebase.iid.zzk;
 import com.google.firebase.iid.zzl;
 import com.google.firebase.iid.zzq;
@@ -24,32 +24,32 @@ import java.io.IOException;
 public class FirebaseInstanceIdService extends zzb {
 
    @VisibleForTesting
-   private static Object zzmjc = new Object();
+   private static Object lock = new Object();
    @VisibleForTesting
-   private static boolean zzmjd = false;
-   private boolean zzmje = false;
+   private static boolean isPending = false;
+   private boolean isLog = false;
 
 
-   public final boolean zzo(Intent var1) {
-      this.zzmje = Log.isLoggable("FirebaseInstanceId", 3);
-      if(var1.getStringExtra("error") == null && var1.getStringExtra("registration_id") == null) {
+   public final boolean zzo(Intent intent) {
+      this.isLog = Log.isLoggable("FirebaseInstanceId", 3);
+      if(intent.getStringExtra("error") == null && intent.getStringExtra("registration_id") == null) {
          return false;
       } else {
-         String var2 = zzp(var1);
-         if(this.zzmje) {
+         String var2 = getSubType(intent);
+         if(this.isLog) {
             String var10002 = String.valueOf(var2);
             Log.d("FirebaseInstanceId", var10002.length() != 0?"Register result in service ".concat(var10002):new String("Register result in service "));
          }
 
-         this.zzpt(var2);
-         KeyPairStore.getServiceHelper().zzi(var1);
+         this.getKeyStoreForSubtype(var2);
+         KeyPairStore.getServiceHelper().onReceiverIntent(intent);
          return true;
       }
    }
 
-   public void handleIntent(Intent var1) {
+   public void handleIntent(Intent intent) {
       String var2;
-      if((var2 = var1.getAction()) == null) {
+      if((var2 = intent.getAction()) == null) {
          var2 = "";
       }
 
@@ -62,43 +62,43 @@ public class FirebaseInstanceIdService extends zzb {
       default:
          switch(var4) {
          case 0:
-            this.zza(var1, false, false);
+            this.handleIntent(intent, false, false);
             return;
          default:
-            String var7 = zzp(var1);
-            KeyPairStore var8 = this.zzpt(var7);
-            String var9 = var1.getStringExtra("CMD");
-            if(this.zzmje) {
-               String var10 = String.valueOf(var1.getExtras());
+            String var7 = getSubType(intent);
+            KeyPairStore keyPairStore = this.getKeyStoreForSubtype(var7);
+            String var9 = intent.getStringExtra("CMD");
+            if(this.isLog) {
+               String var10 = String.valueOf(intent.getExtras());
                Log.d("FirebaseInstanceId", (new StringBuilder(18 + String.valueOf(var7).length() + String.valueOf(var9).length() + String.valueOf(var10).length())).append("Service command ").append(var7).append(" ").append(var9).append(" ").append(var10).toString());
             }
 
-            if(null != var1.getStringExtra("unregistered")) {
-               KeyPairStore.getPrefs().zzhu(var7 == null?"":var7);
-               KeyPairStore.getServiceHelper().zzi(var1);
-            } else if("gcm.googleapis.com/refresh".equals(var1.getStringExtra("from"))) {
-               KeyPairStore.getPrefs().zzhu(var7);
-               this.zza(var1, false, true);
+            if(null != intent.getStringExtra("unregistered")) {
+               KeyPairStore.getPrefs().removeToken(var7 == null?"":var7);
+               KeyPairStore.getServiceHelper().onRecieverIntent(intent);
+            } else if("gcm.googleapis.com/refresh".equals(intent.getStringExtra("from"))) {
+               KeyPairStore.getPrefs().removeToken(var7);
+               this.handleIntent(intent, false, true);
             } else if("RST".equals(var9)) {
-               var8.removeInstanceId();
-               this.zza(var1, true, true);
+               keyPairStore.removeInstanceId();
+               this.handleIntent(intent, true, true);
             } else {
                if("RST_FULL".equals(var9)) {
                   if(!KeyPairStore.getPrefs().isEmpty()) {
-                     var8.removeInstanceId();
-                     KeyPairStore.getPrefs().zzasu();
-                     this.zza(var1, true, true);
+                     keyPairStore.removeInstanceId();
+                     KeyPairStore.getPrefs().clear();
+                     this.handleIntent(intent, true, true);
                      return;
                   }
                } else {
                   if("SYNC".equals(var9)) {
-                     KeyPairStore.getPrefs().zzhu(var7);
-                     this.zza(var1, false, true);
+                     KeyPairStore.getPrefs().removeToken(var7);
+                     this.handleIntent(intent, false, true);
                      return;
                   }
 
                   if("PING".equals(var9)) {
-                     Bundle var12 = var1.getExtras();
+                     Bundle var12 = intent.getExtras();
                      String var13;
                      if((var13 = ServiceHelper.detectUnderlyService(this)) == null) {
                         Log.w("FirebaseInstanceId", "Unable to respond to ping due to missing target package");
@@ -120,16 +120,16 @@ public class FirebaseInstanceIdService extends zzb {
       }
    }
 
-   protected final Intent zzn(Intent var1) {
-      return (Intent)zzq.getInstance().zzmjq.poll();
+   protected final Intent pollIdEventQueue(Intent var1) {
+      return (Intent)ReceiverUtil.getInstance().IdEventQueue.poll();
    }
 
-   private static String zzp(Intent var0) {
+   private static String getSubType(Intent var0) {
       String var1;
       return (var1 = var0.getStringExtra("subtype")) == null?"":var1;
    }
 
-   private final KeyPairStore zzpt(String var1) {
+   private final KeyPairStore getKeyStoreForSubtype(String var1) {
       if(var1 == null) {
          return KeyPairStore.createOrGetKeyPairStoreForBundle(this, (Bundle)null);
       } else {
@@ -139,22 +139,22 @@ public class FirebaseInstanceIdService extends zzb {
       }
    }
 
-   private final void zza(Intent var1, boolean var2, boolean var3) {
-      Object var4 = zzmjc;
-      synchronized(zzmjc) {
-         zzmjd = false;
+   private final void handleIntent(Intent intent, boolean var2, boolean isTokenFresh) {
+      Object var4 = lock;
+      synchronized(lock) {
+         isPending = false;
       }
 
       if(ServiceHelper.detectUnderlyService(this) != null) {
          TokenWrapper tokenWrapper;
-         FirebaseInstanceId var17;
-         if((tokenWrapper = (var17 = FirebaseInstanceId.getInstance()).zzbyi()) != null && !tokenWrapper.shouldRefresh(KeyPairStore.appVersion)) {
+         FirebaseInstanceId id;
+         if((tokenWrapper = (id = FirebaseInstanceId.getInstance()).getTokenWrapper()) != null && !tokenWrapper.shouldRefresh(KeyPairStore.appVersion)) {
             TopicOpQueue var18;
-            for(String var7 = (var18 = FirebaseInstanceId.getTopicOpQueue()).zzbyn(); var7 != null; var7 = var18.fetchFirst()) {
+            for(String var7 = (var18 = FirebaseInstanceId.getTopicOpQueue()).popFirst(); var7 != null; var7 = var18.fetchFirst()) {
                String[] var8;
                if((var8 = var7.split("!")).length == 2) {
                   String var9 = var8[0];
-                  String var10 = var8[1];
+                  String topic = var8[1];
 
                   try {
                      byte var12 = -1;
@@ -172,19 +172,19 @@ public class FirebaseInstanceIdService extends zzb {
 
                      switch(var12) {
                      case 0:
-                        FirebaseInstanceId.getInstance().zzpr(var10);
-                        if(this.zzmje) {
+                        FirebaseInstanceId.getInstance().requestTopicToken(topic);
+                        if(this.isLog) {
                            Log.d("FirebaseInstanceId", "subscribe operation succeeded");
                         }
                         break;
                      case 1:
-                        FirebaseInstanceId.getInstance().zzps(var10);
-                        if(this.zzmje) {
+                        FirebaseInstanceId.getInstance().deleteTopicToken(topic);
+                        if(this.isLog) {
                            Log.d("FirebaseInstanceId", "unsubscribe operation succeeded");
                         }
                      }
                   } catch (IOException var13) {
-                     this.zza(var1, var13.getMessage());
+                     this.handleError(intent, var13.getMessage());
                      return;
                   }
                }
@@ -196,21 +196,21 @@ public class FirebaseInstanceIdService extends zzb {
          } else {
             try {
                String var6;
-               if((var6 = var17.getTokenMasterScope()) != null) {
-                  if(this.zzmje) {
+               if((var6 = id.getTokenMasterScope()) != null) {
+                  if(this.isLog) {
                      Log.d("FirebaseInstanceId", "get master token succeeded");
                   }
 
-                  zza((Context)this, var17);
-                  if(var3 || tokenWrapper == null || tokenWrapper != null && !var6.equals(tokenWrapper.token)) {
+                  reset((Context)this, id);
+                  if(isTokenFresh || tokenWrapper == null || tokenWrapper != null && !var6.equals(tokenWrapper.token)) {
                      this.onTokenRefresh();
                   }
 
                } else {
-                  this.zza(var1, "returned token is null");
+                  this.handleError(intent, "returned token is null");
                }
             } catch (IOException var15) {
-               this.zza(var1, var15.getMessage());
+               this.handleError(intent, var15.getMessage());
             } catch (SecurityException var16) {
                Log.e("FirebaseInstanceId", "Unable to get master token", var16);
             }
@@ -218,13 +218,13 @@ public class FirebaseInstanceIdService extends zzb {
       }
    }
 
-   private final void zza(Intent var1, String var2) {
-      boolean var3 = zzem(this);
+   private final void handleError(Intent intent, String var2) {
+      boolean var3 = isConnectedInternal(this);
       int var10;
-      if(var1 == null) {
+      if(intent == null) {
          var10 = 10;
       } else {
-         var10 = var1.getIntExtra("next_retry_delay_in_seconds", 0);
+         var10 = intent.getIntExtra("next_retry_delay_in_seconds", 0);
       }
 
       if(var10 < 10 && !var3) {
@@ -237,74 +237,74 @@ public class FirebaseInstanceIdService extends zzb {
 
       int var4 = var10;
       Log.d("FirebaseInstanceId", (new StringBuilder(47 + String.valueOf(var2).length())).append("background sync failed: ").append(var2).append(", retry in ").append(var10).append("s").toString());
-      Object var5 = zzmjc;
-      synchronized(zzmjc) {
+      Object var5 = lock;
+      synchronized(lock) {
          AlarmManager var9 = (AlarmManager)this.getSystemService("alarm");
-         PendingIntent var12 = zzq.zza(this, 0, zzfw(var4 << 1), 134217728);
+         PendingIntent var12 = ReceiverUtil.createIdEventPendingIntent(this, 0, createIntentDelayInternal(var4 << 1), 134217728);
          var9.set(3, SystemClock.elapsedRealtime() + (long)(var4 * 1000), var12);
-         zzmjd = true;
+         isPending = true;
       }
 
       if(!var3) {
-         if(this.zzmje) {
+         if(this.isLog) {
             Log.d("FirebaseInstanceId", "device not connected. Connectivity change received registered");
          }
 
-         KeyPairUtil.zzl(this, var4);
+         zza.zzl(this, var4);
       }
 
    }
 
-   static void zza(Context var0, FirebaseInstanceId var1) {
-      Object var2 = zzmjc;
-      synchronized(zzmjc) {
-         if(zzmjd) {
+   static void reset(Context ctx, FirebaseInstanceId id) {
+      Object var2 = lock;
+      synchronized(lock) {
+         if(isPending) {
             return;
          }
       }
 
       TokenWrapper var5;
-      if((var5 = var1.getTokenWrapper()) == null || var5.shouldRefresh(KeyPairStore.appVersion) || FirebaseInstanceId.getTopicOpQueue().zzbyn() != null) {
-         zzel(var0);
+      if((var5 = id.getTokenWrapper()) == null || var5.shouldRefresh(KeyPairStore.appVersion) || FirebaseInstanceId.getTopicOpQueue().fetchFirst() != null) {
+         startRetryRequest(ctx);
       }
 
    }
 
-   static void zzel(Context var0) {
-      if(ServiceHelper.detectUnderlyService(var0) != null) {
-         Object var1 = zzmjc;
-         synchronized(zzmjc) {
-            if(!zzmjd) {
-               zzq.getInstance().zze(var0, zzfw(0));
-               zzmjd = true;
+   static void startRetryRequest(Context ctx) {
+      if(ServiceHelper.detectUnderlyService(ctx) != null) {
+         Object var1 = lock;
+         synchronized(lock) {
+            if(!isPending) {
+               ReceiverUtil.getInstance().handleIdEvent(ctx, createIntentDelayInternal(0));
+               isPending = true;
             }
 
          }
       }
    }
 
-   private static Intent zzfw(int var0) {
+   private static Intent createIntentDelayInternal(int delay) {
       Intent var1;
-      (var1 = new Intent("ACTION_TOKEN_REFRESH_RETRY")).putExtra("next_retry_delay_in_seconds", var0);
+      (var1 = new Intent("ACTION_TOKEN_REFRESH_RETRY")).putExtra("next_retry_delay_in_seconds", delay);
       return var1;
    }
 
-   private static boolean zzem(Context var0) {
+   private static boolean isConnectedInternal(Context ctx) {
       NetworkInfo var1;
-      return (var1 = ((ConnectivityManager)var0.getSystemService("connectivity")).getActiveNetworkInfo()) != null && var1.isConnected();
+      return (var1 = ((ConnectivityManager)ctx.getSystemService("connectivity")).getActiveNetworkInfo()) != null && var1.isConnected();
    }
 
    @WorkerThread
    public void onTokenRefresh() {}
 
    // $FF: synthetic method
-   static boolean zzen(Context var0) {
-      return zzem(var0);
+   static boolean isConnected(Context var0) {
+      return isConnectedInternal(var0);
    }
 
    // $FF: synthetic method
-   static Intent zzfx(int var0) {
-      return zzfw(var0);
+   static Intent createIntentDelay(int delay) {
+      return createIntentDelayInternal(delay);
    }
 
 }

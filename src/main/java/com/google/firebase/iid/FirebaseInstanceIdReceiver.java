@@ -8,47 +8,47 @@ import android.support.v4.content.WakefulBroadcastReceiver;
 import android.util.Base64;
 import android.util.Log;
 import com.google.firebase.iid.FirebaseInstanceIdInternalReceiver;
-import com.google.firebase.iid.zzq;
+import com.google.firebase.iid.ReceiverUtil;
 
 public final class FirebaseInstanceIdReceiver extends WakefulBroadcastReceiver {
 
-   public final void onReceive(Context var1, Intent var2) {
-      var2.setComponent((ComponentName)null);
-      var2.setPackage(var1.getPackageName());
+   public final void onReceive(Context ctx, Intent intent) {
+      intent.setComponent((ComponentName)null);
+      intent.setPackage(ctx.getPackageName());
       if(VERSION.SDK_INT <= 18) {
-         var2.removeCategory(var1.getPackageName());
+         intent.removeCategory(ctx.getPackageName());
       }
 
       String var3;
-      if((var3 = var2.getStringExtra("gcm.rawData64")) != null) {
-         var2.putExtra("rawData", Base64.decode(var3, 0));
-         var2.removeExtra("gcm.rawData64");
+      if((var3 = intent.getStringExtra("gcm.rawData64")) != null) {
+         intent.putExtra("rawData", Base64.decode(var3, 0));
+         intent.removeExtra("gcm.rawData64");
       }
 
-      String var4 = null;
-      String var5 = var2.getStringExtra("from");
-      if(!"google.com/iid".equals(var5) && !"gcm.googleapis.com/refresh".equals(var5)) {
-         if("com.google.android.c2dm.intent.RECEIVE".equals(var2.getAction())) {
-            var4 = "com.google.firebase.MESSAGING_EVENT";
+      String action = null;
+      String from = intent.getStringExtra("from");
+      if(!"google.com/iid".equals(from) && !"gcm.googleapis.com/refresh".equals(from)) {
+         if("com.google.android.c2dm.intent.RECEIVE".equals(intent.getAction())) {
+            action = "com.google.firebase.MESSAGING_EVENT";
          } else {
             Log.d("FirebaseInstanceId", "Unexpected intent");
          }
       } else {
-         var4 = "com.google.firebase.INSTANCE_ID_EVENT";
+         action = "com.google.firebase.INSTANCE_ID_EVENT";
       }
 
       int var6 = -1;
-      if(var4 != null) {
+      if(action != null) {
          int var10000;
-         if(FirebaseInstanceIdInternalReceiver.zzek(var1)) {
+         if(FirebaseInstanceIdInternalReceiver.zzek(ctx)) {
             if(this.isOrderedBroadcast()) {
                this.setResultCode(-1);
             }
 
-            FirebaseInstanceIdInternalReceiver.zzah(var1, var4).zza(var2, this.goAsync());
+            FirebaseInstanceIdInternalReceiver.handleMessageEvent(ctx, action).zza(intent, this.goAsync());
             var10000 = -1;
          } else {
-            var10000 = zzq.getInstance().zza(var1, var4, var2);
+            var10000 = ReceiverUtil.getInstance().handleIntent(ctx, action, intent);
          }
 
          var6 = var10000;

@@ -63,7 +63,7 @@ public class FirebaseInstanceId {
       if(this.projectId == null) {
          throw new IllegalStateException("IID failing to initialize, FirebaseApp is missing project ID");
       } else {
-         FirebaseInstanceIdService.zza(this.app.getApplicationContext(), this);
+         FirebaseInstanceIdService.reset(this.app.getApplicationContext(), this);
       }
    }
 
@@ -84,7 +84,7 @@ public class FirebaseInstanceId {
    public String getToken() {
       TokenWrapper tokenWrapper;
       if((tokenWrapper = this.getTokenWrapper()) == null || tokenWrapper.shouldRefresh(KeyPairStore.appVersion)) {
-         FirebaseInstanceIdService.zzel(this.app.getApplicationContext());
+         FirebaseInstanceIdService.startRetryRequest(this.app.getApplicationContext());
       }
 
       return tokenWrapper != null?tokenWrapper.token:null;
@@ -115,7 +115,7 @@ public class FirebaseInstanceId {
 
    public final void addToTopicOpQueue(String var1) {
       topicOpQueue.append(var1);
-      FirebaseInstanceIdService.zzel(this.app.getApplicationContext());
+      FirebaseInstanceIdService.startRetryRequest(this.app.getApplicationContext());
    }
 
    static TopicOpQueue getTopicOpQueue() {
@@ -249,13 +249,13 @@ public class FirebaseInstanceId {
       pref.clear();
       Intent var2;
       (var2 = new Intent()).putExtra("CMD", "RST");
-      zzq.getInstance().zze(ctx, var2);
+      ReceiverUtil.getInstance().zze(ctx, var2);
    }
 
    static void syncCommand(Context ctx) {
       Intent var1;
       (var1 = new Intent()).putExtra("CMD", "SYNC");
-      zzq.getInstance().zze(ctx, var1);
+      ReceiverUtil.getInstance().zze(ctx, var1);
    }
 
 }

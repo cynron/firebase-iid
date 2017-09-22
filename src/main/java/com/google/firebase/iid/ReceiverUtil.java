@@ -14,86 +14,86 @@ import com.google.firebase.iid.FirebaseInstanceIdInternalReceiver;
 import java.util.LinkedList;
 import java.util.Queue;
 
-public final class zzq {
+public final class ReceiverUtil {
 
-   private static zzq instance;
-   private final SimpleArrayMap zzmjo = new SimpleArrayMap();
-   private Boolean zzmjp = null;
+   private static ReceiverUtil instance;
+   private final SimpleArrayMap actionMap = new SimpleArrayMap();
+   private Boolean wakelockPerm = null;
    @VisibleForTesting
-   final Queue zzmjq = new LinkedList();
+   final Queue IdEventQueue = new LinkedList();
    @VisibleForTesting
-   private Queue zzmjr = new LinkedList();
+   private Queue msgEventQueue = new LinkedList();
 
 
-   public static synchronized zzq getInstance() {
+   public static synchronized ReceiverUtil getInstance() {
       if(instance == null) {
-         instance = new zzq();
+         instance = new ReceiverUtil();
       }
 
       return instance;
    }
 
-   public static PendingIntent zza(Context var0, int var1, Intent var2, int var3) {
-      return zza(var0, 0, "com.google.firebase.INSTANCE_ID_EVENT", var2, 134217728);
+   public static PendingIntent createIdEventPendingIntent(Context var0, int var1, Intent var2, int var3) {
+      return createPendingIntent(var0, 0, "com.google.firebase.INSTANCE_ID_EVENT", var2, 134217728);
    }
 
-   public static PendingIntent zzb(Context var0, int var1, Intent var2, int var3) {
-      return zza(var0, var1, "com.google.firebase.MESSAGING_EVENT", var2, 1073741824);
+   public static PendingIntent createMsgPendingIntent(Context var0, int var1, Intent var2, int var3) {
+      return createPendingIntent(var0, var1, "com.google.firebase.MESSAGING_EVENT", var2, 1073741824);
    }
 
-   private static PendingIntent zza(Context var0, int var1, String action, Intent var3, int var4) {
+   private static PendingIntent createPendingIntent(Context var0, int var1, String action, Intent var3, int var4) {
       Intent var5;
       (var5 = new Intent(var0, FirebaseInstanceIdInternalReceiver.class)).setAction(action);
       var5.putExtra("wrapped_intent", var3);
       return PendingIntent.getBroadcast(var0, var1, var5, var4);
    }
 
-   public final Intent zzbyq() {
-      return (Intent)this.zzmjr.poll();
+   public final Intent pollMsgEventQueue() {
+      return (Intent)this.msgEventQueue.poll();
    }
 
-   public final void zze(Context var1, Intent var2) {
-      this.zza(var1, "com.google.firebase.INSTANCE_ID_EVENT", var2);
+   public final void handleIdEvent(Context var1, Intent var2) {
+      this.handleIntent(var1, "com.google.firebase.INSTANCE_ID_EVENT", var2);
    }
 
-   public final int zza(Context var1, String var2, Intent var3) {
+   public final int handleIntent(Context var1, String action, Intent var3) {
       byte var5 = -1;
-      switch(var2.hashCode()) {
+      switch(action.hashCode()) {
       case -842411455:
-         if(var2.equals("com.google.firebase.INSTANCE_ID_EVENT")) {
+         if(action.equals("com.google.firebase.INSTANCE_ID_EVENT")) {
             var5 = 0;
          }
          break;
       case 41532704:
-         if(var2.equals("com.google.firebase.MESSAGING_EVENT")) {
+         if(action.equals("com.google.firebase.MESSAGING_EVENT")) {
             var5 = 1;
          }
       }
 
       switch(var5) {
       case 0:
-         this.zzmjq.offer(var3);
+         this.IdEventQueue.offer(var3);
          break;
       case 1:
-         this.zzmjr.offer(var3);
+         this.msgEventQueue.offer(var3);
          break;
       default:
-         String var10002 = String.valueOf(var2);
+         String var10002 = String.valueOf(action);
          Log.w("FirebaseInstanceId", var10002.length() != 0?"Unknown service action: ".concat(var10002):new String("Unknown service action: "));
          return 500;
       }
 
-      Intent var4;
-      (var4 = new Intent(var2)).setPackage(var1.getPackageName());
-      return this.zzf(var1, var4);
+      Intent newIntent;
+      (newIntent = new Intent(action)).setPackage(var1.getPackageName());
+      return this.deliveryToDest(var1, newIntent);
    }
 
-   private final int zzf(Context var1, Intent var2) {
+   private final int deliveryToDest(Context var1, Intent var2) {
       Intent var7 = var2;
-      zzq var5 = this;
+      ReceiverUtil var5 = this;
       String var8;
-      synchronized(this.zzmjo) {
-         var8 = (String)var5.zzmjo.get(var7.getAction());
+      synchronized(this.actionMap) {
+         var8 = (String)var5.actionMap.get(var7.getAction());
       }
 
       label87: {
@@ -131,9 +131,9 @@ public final class zzq {
             }
 
             var8 = var10000;
-            SimpleArrayMap var11 = this.zzmjo;
-            synchronized(this.zzmjo) {
-               var5.zzmjo.put(var7.getAction(), var8);
+            SimpleArrayMap var11 = this.actionMap;
+            synchronized(this.actionMap) {
+               var5.actionMap.put(var7.getAction(), var8);
             }
          }
 
@@ -146,12 +146,12 @@ public final class zzq {
       }
 
       try {
-         if(this.zzmjp == null) {
-            this.zzmjp = Boolean.valueOf(var1.checkCallingOrSelfPermission("android.permission.WAKE_LOCK") == 0);
+         if(this.wakelockPerm == null) {
+            this.wakelockPerm = Boolean.valueOf(var1.checkCallingOrSelfPermission("android.permission.WAKE_LOCK") == 0);
          }
 
          ComponentName var3;
-         if(this.zzmjp.booleanValue()) {
+         if(this.wakelockPerm.booleanValue()) {
             var3 = WakefulBroadcastReceiver.startWakefulService(var1, var2);
          } else {
             var3 = var1.startService(var2);

@@ -13,28 +13,28 @@ class FirebaseInstanceIdService$zza extends BroadcastReceiver {
 
    @Nullable
    private static BroadcastReceiver receiver;
-   private int zzmjf;
+   private int retryDelay;
 
 
-   static synchronized void zzl(Context var0, int var1) {
+   static synchronized void getInstance(Context ctx, int delay) {
       if(receiver == null) {
-         receiver = new FirebaseInstanceIdService$zza(var1);
-         var0.getApplicationContext().registerReceiver(receiver, new IntentFilter("android.net.conn.CONNECTIVITY_CHANGE"));
+         receiver = new FirebaseInstanceIdService$zza(delay);
+         ctx.getApplicationContext().registerReceiver(receiver, new IntentFilter("android.net.conn.CONNECTIVITY_CHANGE"));
       }
    }
 
-   private FirebaseInstanceIdService$zza(int var1) {
-      this.zzmjf = var1;
+   private FirebaseInstanceIdService$zza(int retry) {
+      this.retryDelay = retry;
    }
 
-   public void onReceive(Context var1, Intent var2) {
+   public void onReceive(Context ctx, Intent intent) {
       Class var3 = FirebaseInstanceIdService$zza.class;
       synchronized(FirebaseInstanceIdService$zza.class) {
          if(receiver != this) {
             return;
          }
 
-         if(!FirebaseInstanceIdService.zzen(var1)) {
+         if(!FirebaseInstanceIdService.isConnected(ctx)) {
             return;
          }
 
@@ -42,10 +42,10 @@ class FirebaseInstanceIdService$zza extends BroadcastReceiver {
             Log.d("FirebaseInstanceId", "connectivity changed. starting background sync.");
          }
 
-         var1.getApplicationContext().unregisterReceiver(this);
+         ctx.getApplicationContext().unregisterReceiver(this);
          receiver = null;
       }
 
-      zzq.getInstance().zze(var1, FirebaseInstanceIdService.zzfx(this.zzmjf));
+      ReceiverUtil.getInstance().handleIdEvent(ctx, FirebaseInstanceIdService.createIntentDelay(this.retryDelay));
    }
 }

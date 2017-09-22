@@ -7,7 +7,7 @@ import android.support.v4.content.WakefulBroadcastReceiver;
 import android.util.Log;
 import com.google.android.gms.common.util.zzp;
 import com.google.firebase.iid.zzh;
-import com.google.firebase.iid.zzq;
+import com.google.firebase.iid.ReceiverUtil;
 
 public final class FirebaseInstanceIdInternalReceiver extends WakefulBroadcastReceiver {
 
@@ -16,17 +16,17 @@ public final class FirebaseInstanceIdInternalReceiver extends WakefulBroadcastRe
    private static zzh zzmjb;
 
 
-   public final void onReceive(Context var1, Intent var2) {
-      if(var2 != null) {
+   public final void onReceive(Context ctx, Intent intent) {
+      if(intent != null) {
          Parcelable var3;
-         if(!((var3 = var2.getParcelableExtra("wrapped_intent")) instanceof Intent)) {
+         if(!((var3 = intent.getParcelableExtra("wrapped_intent")) instanceof Intent)) {
             Log.e("FirebaseInstanceId", "Missing or invalid wrapped intent");
          } else {
             Intent var4 = (Intent)var3;
-            if(zzek(var1)) {
-               zzah(var1, var2.getAction()).zza(var4, this.goAsync());
+            if(zzek(ctx)) {
+               handleMessageEvent(ctx, intent.getAction()).zza(var4, this.goAsync());
             } else {
-               zzq.getInstance().zza(var1, var2.getAction(), var4);
+               ReceiverUtil.getInstance().handleIntent(ctx, intent.getAction(), var4);
             }
          }
       }
@@ -36,16 +36,16 @@ public final class FirebaseInstanceIdInternalReceiver extends WakefulBroadcastRe
       return !zzp.isAtLeastO()?false:var0.getApplicationInfo().targetSdkVersion > 25;
    }
 
-   static synchronized zzh zzah(Context var0, String var1) {
-      if("com.google.firebase.MESSAGING_EVENT".equals(var1)) {
+   static synchronized zzh handleMessageEvent(Context var0, String action) {
+      if("com.google.firebase.MESSAGING_EVENT".equals(action)) {
          if(zzmjb == null) {
-            zzmjb = new zzh(var0, var1);
+            zzmjb = new zzh(var0, action);
          }
 
          return zzmjb;
       } else {
          if(zzmja == null) {
-            zzmja = new zzh(var0, var1);
+            zzmja = new zzh(var0, action);
          }
 
          return zzmja;
