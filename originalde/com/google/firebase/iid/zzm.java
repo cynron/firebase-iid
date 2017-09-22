@@ -8,10 +8,10 @@ import com.google.firebase.iid.zzl;
 final class zzm extends Handler {
 
    // $FF: synthetic field
-   private zzl zzmjk;
+   private ServiceHelper zzmjk;
 
 
-   zzm(zzl var1, Looper var2) {
+   zzm(ServiceHelper var1, Looper var2) {
       this.zzmjk = var1;
       super(var2);
    }

@@ -13,11 +13,11 @@ import android.util.Base64;
 import android.util.Log;
 import com.google.firebase.FirebaseApp;
 import com.google.firebase.iid.FirebaseInstanceIdService;
-import com.google.firebase.iid.zzj;
-import com.google.firebase.iid.zzk;
-import com.google.firebase.iid.zzq;
-import com.google.firebase.iid.zzr;
-import com.google.firebase.iid.zzs;
+import com.google.firebase.iid.KeyPairStore;
+import com.google.firebase.iid.TopicOpQueue;
+import com.google.firebase.iid.TokenWrapper;
+import com.google.firebase.iid.SharedPrefsHelper;
+import com.google.firebase.iid.TokenWrapper;
 import java.io.IOException;
 import java.security.KeyPair;
 import java.security.MessageDigest;
@@ -27,11 +27,10 @@ import java.util.Map;
 public class FirebaseInstanceId {
 
    private static Map instMap = new ArrayMap();
-   private static zzk zzmiw;
-   private final FirebaseApp zzmix;
-   private final zzj zzmiy;
-   private final String zzmiz;
-
+   private static TopicOpQueue topicOpQueue;
+   private final FirebaseApp app;
+   private final KeyPairStore keyPairStore;
+   private final String projectId;
 
    public static FirebaseInstanceId getInstance() {
       return getInstance(FirebaseApp.getInstance());
@@ -41,9 +40,9 @@ public class FirebaseInstanceId {
    public static synchronized FirebaseInstanceId getInstance(@NonNull FirebaseApp var0) {
       FirebaseInstanceId var1;
       if((var1 = (FirebaseInstanceId)instMap.get(var0.getOptions().getApplicationId())) == null) {
-         zzj var2 = zzj.zza(var0.getApplicationContext(), (Bundle)null);
-         if(zzmiw == null) {
-            zzmiw = new zzk(zzj.zzbyl());
+         KeyPairStore var2 = KeyPairStore.createOrGetKeyPairStoreForBundle(var0.getApplicationContext(), (Bundle)null);
+         if(topicOpQueue == null) {
+            topicOpQueue = new TopicOpQueue(KeyPairStore.getPrefs());
          }
 
          var1 = new FirebaseInstanceId(var0, var2);
@@ -53,83 +52,83 @@ public class FirebaseInstanceId {
       return var1;
    }
 
-   private FirebaseInstanceId(FirebaseApp var1, zzj var2) {
-      this.zzmix = var1;
-      this.zzmiy = var2;
+   private FirebaseInstanceId(FirebaseApp app, KeyPairStore keyPairStore) {
+      this.app = app;
+      this.keyPairStore = keyPairStore;
       String var4;
       String var5;
       String[] var6;
       String var7;
-      this.zzmiz = (var4 = this.zzmix.getOptions().getGcmSenderId()) != null?var4:((var5 = this.zzmix.getOptions().getApplicationId()).startsWith("1:")?((var6 = var5.split(":")).length < 2?null:((var7 = var6[1]).isEmpty()?null:var7)):var5);
-      if(this.zzmiz == null) {
+      this.projectId = (var4 = this.app.getOptions().getGcmSenderId()) != null?var4:((var5 = this.app.getOptions().getApplicationId()).startsWith("1:")?((var6 = var5.split(":")).length < 2?null:((var7 = var6[1]).isEmpty()?null:var7)):var5);
+      if(this.projectId == null) {
          throw new IllegalStateException("IID failing to initialize, FirebaseApp is missing project ID");
       } else {
-         FirebaseInstanceIdService.zza(this.zzmix.getApplicationContext(), this);
+         FirebaseInstanceIdService.zza(this.app.getApplicationContext(), this);
       }
    }
 
    public String getId() {
-      return zza(this.zzmiy.zzasp());
+      return generateIdFromKeyPair(this.keyPairStore.getKeyPair());
    }
 
    public long getCreationTime() {
-      return this.zzmiy.getCreationTime();
+      return this.keyPairStore.getCreationTime();
    }
 
    public void deleteInstanceId() throws IOException {
-      this.zzmiy.zza("*", "*", (Bundle)null);
-      this.zzmiy.zzasq();
+      this.keyPairStore.deleteTokenRequest("*", "*", (Bundle)null);
+      this.keyPairStore.removeInstanceId();
    }
 
    @Nullable
    public String getToken() {
-      TokenWrapper var1;
-      if((var1 = this.zzbyi()) == null || var1.shouldRefresh(zzj.appVersion)) {
-         FirebaseInstanceIdService.zzel(this.zzmix.getApplicationContext());
+      TokenWrapper tokenWrapper;
+      if((tokenWrapper = this.getTokenWrapper()) == null || tokenWrapper.shouldRefresh(KeyPairStore.appVersion)) {
+         FirebaseInstanceIdService.zzel(this.app.getApplicationContext());
       }
 
-      return var1 != null?var1.token:null;
+      return tokenWrapper != null?tokenWrapper.token:null;
    }
 
    @Nullable
-   final TokenWrapper zzbyi() {
-      return zzj.zzbyl().zzo("", this.zzmiz, "*");
+   final TokenWrapper getTokenWrapper() {
+      return KeyPairStore.getPrefs().zzo("", this.projectId, "*");
    }
 
-   final String zzbyj() throws IOException {
-      return this.getToken(this.zzmiz, "*");
-   }
-
-   @WorkerThread
-   public String getToken(String var1, String var2) throws IOException {
-      Bundle var3 = new Bundle();
-      this.zzab(var3);
-      return this.zzmiy.getToken(var1, var2, var3);
+   final String getTokenMasterScope() throws IOException {
+      return this.getToken(this.projectId, "*");
    }
 
    @WorkerThread
-   public void deleteToken(String var1, String var2) throws IOException {
-      Bundle var3 = new Bundle();
-      this.zzab(var3);
-      this.zzmiy.zza(var1, var2, var3);
+   public String getToken(String authorizedEntity, String scope) throws IOException {
+      Bundle bundle = new Bundle();
+      this.setAppIdToBundle(bundle);
+      return this.keyPairStore.getTokenRequest(authorizedEntity, scope, bundle);
    }
 
-   public final void zzpq(String var1) {
-      zzmiw.zzpq(var1);
-      FirebaseInstanceIdService.zzel(this.zzmix.getApplicationContext());
+   @WorkerThread
+   public void deleteToken(String authorizedEntity, String scope) throws IOException {
+      Bundle bundle = new Bundle();
+      this.setAppIdToBundle(bundle);
+      this.keyPairStore.deleteTokenRequest(authorizedEntity, scope, bundle);
    }
 
-   static zzk zzbyk() {
-      return zzmiw;
+   public final void addToTopicOpQueue(String var1) {
+      topicOpQueue.append(var1);
+      FirebaseInstanceIdService.zzel(this.app.getApplicationContext());
    }
 
-   final void zzpr(String var1) throws IOException {
+   static TopicOpQueue getTopicOpQueue() {
+      return topicOpQueue;
+   }
+
+   final void requestTopicToken(String topic) throws IOException {
       TokenWrapper var2;
-      if((var2 = this.zzbyi()) != null && !var2.shouldRefresh(zzj.appVersion)) {
-         Bundle var3;
-         Bundle var10000 = var3 = new Bundle();
+      if((var2 = this.getTokenWrapper()) != null && !var2.shouldRefresh(KeyPairStore.appVersion)) {
+         Bundle bundle;
+         Bundle var10000 = bundle = new Bundle();
          String var10002 = String.valueOf("/topics/");
-         String var10003 = String.valueOf(var1);
+         String var10003 = String.valueOf(topic);
          String var10004;
          if(var10003.length() != 0) {
             var10002 = var10002.concat(var10003);
@@ -141,9 +140,9 @@ public class FirebaseInstanceId {
          }
 
          var10000.putString("gcm.topic", var10002);
-         String var10001 = var2.token;
+         String token = var2.token;
          var10002 = String.valueOf("/topics/");
-         var10003 = String.valueOf(var1);
+         var10003 = String.valueOf(topic);
          if(var10003.length() != 0) {
             var10002 = var10002.concat(var10003);
          } else {
@@ -154,21 +153,21 @@ public class FirebaseInstanceId {
          }
 
          String var6 = var10002;
-         String var5 = var10001;
-         this.zzab(var3);
-         this.zzmiy.zzb(var5, var6, var3);
+         String var5 = token;
+         this.setAppIdToBundle(bundle);
+         this.keyPairStore.tokenRequest(var5, var6, bundle);
       } else {
          throw new IOException("token not available");
       }
    }
 
-   final void zzps(String var1) throws IOException {
+   final void deleteTopicToken(String topic) throws IOException {
       TokenWrapper var2;
-      if((var2 = this.zzbyi()) != null && !var2.shouldRefresh(zzj.appVersion)) {
+      if((var2 = this.getTokenWrapper()) != null && !var2.shouldRefresh(KeyPairStore.appVersion)) {
          Bundle var3;
          Bundle var10000 = var3 = new Bundle();
          String var10002 = String.valueOf("/topics/");
-         String var10003 = String.valueOf(var1);
+         String var10003 = String.valueOf(topic);
          String var10004;
          if(var10003.length() != 0) {
             var10002 = var10002.concat(var10003);
@@ -180,10 +179,10 @@ public class FirebaseInstanceId {
          }
 
          var10000.putString("gcm.topic", var10002);
-         zzj var4 = this.zzmiy;
+         KeyPairStore var4 = this.keyPairStore;
          String var10001 = var2.token;
          var10002 = String.valueOf("/topics/");
-         var10003 = String.valueOf(var1);
+         var10003 = String.valueOf(topic);
          if(var10003.length() != 0) {
             var10002 = var10002.concat(var10003);
          } else {
@@ -193,21 +192,21 @@ public class FirebaseInstanceId {
             var10004.<init>(var10003);
          }
 
-         var4.zza(var10001, var10002, var3);
+         var4.deleteTokenRequest(var10001, var10002, var3);
       } else {
          throw new IOException("token not available");
       }
    }
 
-   private final void zzab(Bundle var1) {
-      var1.putString("gmp_app_id", this.zzmix.getOptions().getApplicationId());
+   private final void setAppIdToBundle(Bundle var1) {
+      var1.putString("gmp_app_id", this.app.getOptions().getApplicationId());
    }
 
-   static String zzm(byte[] var0) {
+   static String base64Encode(byte[] var0) {
       return Base64.encodeToString(var0, 11);
    }
 
-   static String zza(KeyPair var0) {
+   static String generateIdFromKeyPair(KeyPair var0) {
       byte[] var1 = var0.getPublic().getEncoded();
 
       try {
@@ -246,17 +245,17 @@ public class FirebaseInstanceId {
       }
    }
 
-   static void zza(Context ctx, SharePrefsHelper pref) {
+   static void resetState(Context ctx, SharePrefsHelper pref) {
       pref.clear();
       Intent var2;
       (var2 = new Intent()).putExtra("CMD", "RST");
-      zzq.zzbyp().zze(ctx, var2);
+      zzq.getInstance().zze(ctx, var2);
    }
 
-   static void zzej(Context var0) {
+   static void syncCommand(Context ctx) {
       Intent var1;
       (var1 = new Intent()).putExtra("CMD", "SYNC");
-      zzq.zzbyp().zze(var0, var1);
+      zzq.getInstance().zze(ctx, var1);
    }
 
 }

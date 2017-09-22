@@ -42,7 +42,7 @@ public class FirebaseInstanceIdService extends zzb {
          }
 
          this.zzpt(var2);
-         zzj.zzbym().zzi(var1);
+         KeyPairStore.getServiceHelper().zzi(var1);
          return true;
       }
    }
@@ -66,7 +66,7 @@ public class FirebaseInstanceIdService extends zzb {
             return;
          default:
             String var7 = zzp(var1);
-            zzj var8 = this.zzpt(var7);
+            KeyPairStore var8 = this.zzpt(var7);
             String var9 = var1.getStringExtra("CMD");
             if(this.zzmje) {
                String var10 = String.valueOf(var1.getExtras());
@@ -74,25 +74,25 @@ public class FirebaseInstanceIdService extends zzb {
             }
 
             if(null != var1.getStringExtra("unregistered")) {
-               zzj.zzbyl().zzhu(var7 == null?"":var7);
-               zzj.zzbym().zzi(var1);
+               KeyPairStore.getPrefs().zzhu(var7 == null?"":var7);
+               KeyPairStore.getServiceHelper().zzi(var1);
             } else if("gcm.googleapis.com/refresh".equals(var1.getStringExtra("from"))) {
-               zzj.zzbyl().zzhu(var7);
+               KeyPairStore.getPrefs().zzhu(var7);
                this.zza(var1, false, true);
             } else if("RST".equals(var9)) {
-               var8.zzasq();
+               var8.removeInstanceId();
                this.zza(var1, true, true);
             } else {
                if("RST_FULL".equals(var9)) {
-                  if(!zzj.zzbyl().isEmpty()) {
-                     var8.zzasq();
-                     zzj.zzbyl().zzasu();
+                  if(!KeyPairStore.getPrefs().isEmpty()) {
+                     var8.removeInstanceId();
+                     KeyPairStore.getPrefs().zzasu();
                      this.zza(var1, true, true);
                      return;
                   }
                } else {
                   if("SYNC".equals(var9)) {
-                     zzj.zzbyl().zzhu(var7);
+                     KeyPairStore.getPrefs().zzhu(var7);
                      this.zza(var1, false, true);
                      return;
                   }
@@ -100,7 +100,7 @@ public class FirebaseInstanceIdService extends zzb {
                   if("PING".equals(var9)) {
                      Bundle var12 = var1.getExtras();
                      String var13;
-                     if((var13 = zzl.zzdg(this)) == null) {
+                     if((var13 = ServiceHelper.detectUnderlyService(this)) == null) {
                         Log.w("FirebaseInstanceId", "Unable to respond to ping due to missing target package");
                         return;
                      }
@@ -108,9 +108,9 @@ public class FirebaseInstanceIdService extends zzb {
                      Intent var14;
                      (var14 = new Intent("com.google.android.gcm.intent.SEND")).setPackage(var13);
                      var14.putExtras(var12);
-                     zzl.zzd(this, var14);
+                     ServiceHelper.addPendingIntent(this, var14);
                      var14.putExtra("google.to", "google.com/iid");
-                     var14.putExtra("google.message_id", zzl.zzast());
+                     var14.putExtra("google.message_id", ServiceHelper.genReqSeq());
                      this.sendOrderedBroadcast(var14, "com.google.android.gtalkservice.permission.GTALK_SERVICE");
                   }
                }
@@ -121,7 +121,7 @@ public class FirebaseInstanceIdService extends zzb {
    }
 
    protected final Intent zzn(Intent var1) {
-      return (Intent)zzq.zzbyp().zzmjq.poll();
+      return (Intent)zzq.getInstance().zzmjq.poll();
    }
 
    private static String zzp(Intent var0) {
@@ -129,13 +129,13 @@ public class FirebaseInstanceIdService extends zzb {
       return (var1 = var0.getStringExtra("subtype")) == null?"":var1;
    }
 
-   private final zzj zzpt(String var1) {
+   private final KeyPairStore zzpt(String var1) {
       if(var1 == null) {
-         return zzj.zza(this, (Bundle)null);
+         return KeyPairStore.createOrGetKeyPairStoreForBundle(this, (Bundle)null);
       } else {
          Bundle var2;
          (var2 = new Bundle()).putString("subtype", var1);
-         return zzj.zza(this, var2);
+         return KeyPairStore.createOrGetKeyPairStoreForBundle(this, var2);
       }
    }
 
@@ -145,12 +145,12 @@ public class FirebaseInstanceIdService extends zzb {
          zzmjd = false;
       }
 
-      if(zzl.zzdg(this) != null) {
+      if(ServiceHelper.detectUnderlyService(this) != null) {
          TokenWrapper tokenWrapper;
          FirebaseInstanceId var17;
-         if((tokenWrapper = (var17 = FirebaseInstanceId.getInstance()).zzbyi()) != null && !tokenWrapper.shouldRefresh(zzj.appVersion)) {
-            zzk var18;
-            for(String var7 = (var18 = FirebaseInstanceId.zzbyk()).zzbyn(); var7 != null; var7 = var18.zzbyn()) {
+         if((tokenWrapper = (var17 = FirebaseInstanceId.getInstance()).zzbyi()) != null && !tokenWrapper.shouldRefresh(KeyPairStore.appVersion)) {
+            TopicOpQueue var18;
+            for(String var7 = (var18 = FirebaseInstanceId.getTopicOpQueue()).zzbyn(); var7 != null; var7 = var18.fetchFirst()) {
                String[] var8;
                if((var8 = var7.split("!")).length == 2) {
                   String var9 = var8[0];
@@ -189,14 +189,14 @@ public class FirebaseInstanceIdService extends zzb {
                   }
                }
 
-               var18.zzpu(var7);
+               var18.popFirst(var7);
             }
 
             Log.d("FirebaseInstanceId", "topic sync succeeded");
          } else {
             try {
                String var6;
-               if((var6 = var17.zzbyj()) != null) {
+               if((var6 = var17.getTokenMasterScope()) != null) {
                   if(this.zzmje) {
                      Log.d("FirebaseInstanceId", "get master token succeeded");
                   }
@@ -250,7 +250,7 @@ public class FirebaseInstanceIdService extends zzb {
             Log.d("FirebaseInstanceId", "device not connected. Connectivity change received registered");
          }
 
-         zza.zzl(this, var4);
+         KeyPairUtil.zzl(this, var4);
       }
 
    }
@@ -264,18 +264,18 @@ public class FirebaseInstanceIdService extends zzb {
       }
 
       TokenWrapper var5;
-      if((var5 = var1.zzbyi()) == null || var5.shouldRefresh(zzj.appVersion) || FirebaseInstanceId.zzbyk().zzbyn() != null) {
+      if((var5 = var1.getTokenWrapper()) == null || var5.shouldRefresh(KeyPairStore.appVersion) || FirebaseInstanceId.getTopicOpQueue().zzbyn() != null) {
          zzel(var0);
       }
 
    }
 
    static void zzel(Context var0) {
-      if(zzl.zzdg(var0) != null) {
+      if(ServiceHelper.detectUnderlyService(var0) != null) {
          Object var1 = zzmjc;
          synchronized(zzmjc) {
             if(!zzmjd) {
-               zzq.zzbyp().zze(var0, zzfw(0));
+               zzq.getInstance().zze(var0, zzfw(0));
                zzmjd = true;
             }
 
