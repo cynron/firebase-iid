@@ -146,9 +146,9 @@ public class FirebaseInstanceIdService extends zzb {
       }
 
       if(zzl.zzdg(this) != null) {
-         TokenWrapper tokenWrapper;
+         zzs var5;
          FirebaseInstanceId var17;
-         if((tokenWrapper = (var17 = FirebaseInstanceId.getInstance()).zzbyi()) != null && !tokenWrapper.shouldRefresh(zzj.appVersion)) {
+         if((var5 = (var17 = FirebaseInstanceId.getInstance()).zzbyi()) != null && !var5.zzqa(zzj.zzhtl)) {
             zzk var18;
             for(String var7 = (var18 = FirebaseInstanceId.zzbyk()).zzbyn(); var7 != null; var7 = var18.zzbyn()) {
                String[] var8;
@@ -202,7 +202,7 @@ public class FirebaseInstanceIdService extends zzb {
                   }
 
                   zza((Context)this, var17);
-                  if(var3 || tokenWrapper == null || tokenWrapper != null && !var6.equals(tokenWrapper.token)) {
+                  if(var3 || var5 == null || var5 != null && !var6.equals(var5.zzkmz)) {
                      this.onTokenRefresh();
                   }
 
@@ -263,8 +263,8 @@ public class FirebaseInstanceIdService extends zzb {
          }
       }
 
-      TokenWrapper var5;
-      if((var5 = var1.zzbyi()) == null || var5.shouldRefresh(zzj.appVersion) || FirebaseInstanceId.zzbyk().zzbyn() != null) {
+      zzs var5;
+      if((var5 = var1.zzbyi()) == null || var5.zzqa(zzj.zzhtl) || FirebaseInstanceId.zzbyk().zzbyn() != null) {
          zzel(var0);
       }
 

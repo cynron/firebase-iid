@@ -26,7 +26,7 @@ import java.util.Map;
 
 public class FirebaseInstanceId {
 
-   private static Map instMap = new ArrayMap();
+   private static Map zzhtf = new ArrayMap();
    private static zzk zzmiw;
    private final FirebaseApp zzmix;
    private final zzj zzmiy;
@@ -40,14 +40,14 @@ public class FirebaseInstanceId {
    @Keep
    public static synchronized FirebaseInstanceId getInstance(@NonNull FirebaseApp var0) {
       FirebaseInstanceId var1;
-      if((var1 = (FirebaseInstanceId)instMap.get(var0.getOptions().getApplicationId())) == null) {
+      if((var1 = (FirebaseInstanceId)zzhtf.get(var0.getOptions().getApplicationId())) == null) {
          zzj var2 = zzj.zza(var0.getApplicationContext(), (Bundle)null);
          if(zzmiw == null) {
             zzmiw = new zzk(zzj.zzbyl());
          }
 
          var1 = new FirebaseInstanceId(var0, var2);
-         instMap.put(var0.getOptions().getApplicationId(), var1);
+         zzhtf.put(var0.getOptions().getApplicationId(), var1);
       }
 
       return var1;
@@ -83,16 +83,16 @@ public class FirebaseInstanceId {
 
    @Nullable
    public String getToken() {
-      TokenWrapper var1;
-      if((var1 = this.zzbyi()) == null || var1.shouldRefresh(zzj.appVersion)) {
+      zzs var1;
+      if((var1 = this.zzbyi()) == null || var1.zzqa(zzj.zzhtl)) {
          FirebaseInstanceIdService.zzel(this.zzmix.getApplicationContext());
       }
 
-      return var1 != null?var1.token:null;
+      return var1 != null?var1.zzkmz:null;
    }
 
    @Nullable
-   final TokenWrapper zzbyi() {
+   final zzs zzbyi() {
       return zzj.zzbyl().zzo("", this.zzmiz, "*");
    }
 
@@ -124,8 +124,8 @@ public class FirebaseInstanceId {
    }
 
    final void zzpr(String var1) throws IOException {
-      TokenWrapper var2;
-      if((var2 = this.zzbyi()) != null && !var2.shouldRefresh(zzj.appVersion)) {
+      zzs var2;
+      if((var2 = this.zzbyi()) != null && !var2.zzqa(zzj.zzhtl)) {
          Bundle var3;
          Bundle var10000 = var3 = new Bundle();
          String var10002 = String.valueOf("/topics/");
@@ -141,7 +141,7 @@ public class FirebaseInstanceId {
          }
 
          var10000.putString("gcm.topic", var10002);
-         String var10001 = var2.token;
+         String var10001 = var2.zzkmz;
          var10002 = String.valueOf("/topics/");
          var10003 = String.valueOf(var1);
          if(var10003.length() != 0) {
@@ -163,8 +163,8 @@ public class FirebaseInstanceId {
    }
 
    final void zzps(String var1) throws IOException {
-      TokenWrapper var2;
-      if((var2 = this.zzbyi()) != null && !var2.shouldRefresh(zzj.appVersion)) {
+      zzs var2;
+      if((var2 = this.zzbyi()) != null && !var2.zzqa(zzj.zzhtl)) {
          Bundle var3;
          Bundle var10000 = var3 = new Bundle();
          String var10002 = String.valueOf("/topics/");
@@ -181,7 +181,7 @@ public class FirebaseInstanceId {
 
          var10000.putString("gcm.topic", var10002);
          zzj var4 = this.zzmiy;
-         String var10001 = var2.token;
+         String var10001 = var2.zzkmz;
          var10002 = String.valueOf("/topics/");
          var10003 = String.valueOf(var1);
          if(var10003.length() != 0) {
@@ -222,13 +222,13 @@ public class FirebaseInstanceId {
       }
    }
 
-   static int getVersionCode(Context ctx) {
-      return getPkgVersionCode(ctx, ctx.getPackageName());
+   static int zzei(Context var0) {
+      return zzap(var0, var0.getPackageName());
    }
 
-   static int getPkgVersionCode(Context ctx, String pkgName) {
+   static int zzap(Context var0, String var1) {
       try {
-         return ctx.getPackageManager().getPackageInfo(pkgName, 0).versionCode;
+         return var0.getPackageManager().getPackageInfo(var1, 0).versionCode;
       } catch (NameNotFoundException var4) {
          String var3 = String.valueOf(var4);
          Log.w("FirebaseInstanceId", (new StringBuilder(23 + String.valueOf(var3).length())).append("Failed to find package ").append(var3).toString());
@@ -236,9 +236,9 @@ public class FirebaseInstanceId {
       }
    }
 
-   static String getVersionName(Context ctx) {
+   static String zzde(Context var0) {
       try {
-         return ctx.getPackageManager().getPackageInfo(ctx.getPackageName(), 0).versionName;
+         return var0.getPackageManager().getPackageInfo(var0.getPackageName(), 0).versionName;
       } catch (NameNotFoundException var3) {
          String var2 = String.valueOf(var3);
          Log.w("FirebaseInstanceId", (new StringBuilder(38 + String.valueOf(var2).length())).append("Never happens: can\'t find own package ").append(var2).toString());
@@ -246,11 +246,11 @@ public class FirebaseInstanceId {
       }
    }
 
-   static void zza(Context ctx, SharePrefsHelper pref) {
-      pref.clear();
+   static void zza(Context var0, zzr var1) {
+      var1.zzasu();
       Intent var2;
       (var2 = new Intent()).putExtra("CMD", "RST");
-      zzq.zzbyp().zze(ctx, var2);
+      zzq.zzbyp().zze(var0, var2);
    }
 
    static void zzej(Context var0) {

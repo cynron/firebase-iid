@@ -9,10 +9,10 @@ import com.google.firebase.iid.zzl;
 final class zzn extends BroadcastReceiver {
 
    // $FF: synthetic field
-   private ServiceHelper zzmjk;
+   private zzl zzmjk;
 
 
-   zzn(ServiceHelper var1) {
+   zzn(zzl var1) {
       this.zzmjk = var1;
       super();
    }
