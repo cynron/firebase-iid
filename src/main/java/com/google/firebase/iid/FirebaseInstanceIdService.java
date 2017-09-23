@@ -30,7 +30,7 @@ public class FirebaseInstanceIdService extends zzb {
    private boolean isLog = false;
 
 
-   public final boolean zzo(Intent intent) {
+   public final boolean onStart(Intent intent) {
       this.isLog = Log.isLoggable("FirebaseInstanceId", 3);
       if(intent.getStringExtra("error") == null && intent.getStringExtra("registration_id") == null) {
          return false;

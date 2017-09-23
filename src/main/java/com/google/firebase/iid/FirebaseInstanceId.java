@@ -92,7 +92,7 @@ public class FirebaseInstanceId {
 
    @Nullable
    final TokenWrapper getTokenWrapper() {
-      return KeyPairStore.getPrefs().zzo("", this.projectId, "*");
+      return KeyPairStore.getPrefs().getTokenWrapper("", this.projectId, "*");
    }
 
    final String getTokenMasterScope() throws IOException {

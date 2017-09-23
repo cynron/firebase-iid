@@ -18,7 +18,7 @@ final class OurIntentReceiver implements IntentReceiver {
       this.cond = new ConditionVariable();
    }
 
-   public final void handle(Intent intent) {
+   public final void onReceiveIntent(Intent intent) {
       this.intent = intent;
       this.cond.open();
    }

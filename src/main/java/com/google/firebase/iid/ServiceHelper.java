@@ -216,7 +216,7 @@ public final class ServiceHelper {
             String var10002 = String.valueOf(reqId);
             Log.w("InstanceID/Rpc", var10002.length() != 0?"Missing callback for ".concat(var10002):new String("Missing callback for "));
          } else {
-            var4.handle(intent);
+            var4.onReceiveIntent(intent);
          }
       }
    }
@@ -232,7 +232,7 @@ public final class ServiceHelper {
             this.requestMap.clear();
          } else {
             com.google.firebase.iid.IntentReceiver var7;
-            if((var7 = (com.google.firebase.iid.zzp)this.requestMap.remove(reqId)) == null) {
+            if((var7 = (com.google.firebase.iid.IntentReceiver)this.requestMap.remove(reqId)) == null) {
                String var10002 = String.valueOf(reqId);
                Log.w("InstanceID/Rpc", var10002.length() != 0?"Missing callback for ".concat(var10002):new String("Missing callback for "));
                return;
@@ -244,25 +244,25 @@ public final class ServiceHelper {
       }
    }
 
-   final void onReceiverIntent(Intent var1) {
-      if(var1 == null) {
+   final void onReceiverIntent(Intent intent) {
+      if(intent == null) {
          if(Log.isLoggable("InstanceID/Rpc", 3)) {
             Log.d("InstanceID/Rpc", "Unexpected response: null");
          }
 
       } else {
-         String var2 = var1.getAction();
+         String var2 = intent.getAction();
          String var10002;
          if(!"com.google.android.c2dm.intent.REGISTRATION".equals(var2)) {
             if(Log.isLoggable("InstanceID/Rpc", 3)) {
-               var10002 = String.valueOf(var1.getAction());
+               var10002 = String.valueOf(intent.getAction());
                Log.d("InstanceID/Rpc", var10002.length() != 0?"Unexpected response ".concat(var10002):new String("Unexpected response "));
             }
 
          } else {
             String var3;
-            if((var3 = var1.getStringExtra("registration_id")) == null) {
-               var3 = var1.getStringExtra("unregistered");
+            if((var3 = intent.getStringExtra("registration_id")) == null) {
+               var3 = intent.getStringExtra("unregistered");
             }
 
             if(var3 != null) {
@@ -270,7 +270,7 @@ public final class ServiceHelper {
                this.nextRetryTime = 0L;
                this.retryTime = 0;
                this.retryAfter = 0;
-               String var4 = null;
+               String reqId = null;
                if(var3.startsWith("|")) {
                   String[] var5 = var3.split("\\|");
                   if(!"ID".equals(var5[1])) {
@@ -278,7 +278,7 @@ public final class ServiceHelper {
                      Log.w("InstanceID/Rpc", var10002.length() != 0?"Unexpected structured response ".concat(var10002):new String("Unexpected structured response "));
                   }
 
-                  var4 = var5[2];
+                  reqId = var5[2];
                   if(var5.length > 4) {
                      if("SYNC".equals(var5[3])) {
                         FirebaseInstanceId.syncCommand(this.ctx);
@@ -286,8 +286,8 @@ public final class ServiceHelper {
                         Context var10000 = this.ctx;
                         KeyPairStore.createOrGetKeyPairStoreForBundle(this.ctx, (Bundle)null);
                         FirebaseInstanceId.resetState(var10000, KeyPairStore.getPrefs());
-                        var1.removeExtra("registration_id");
-                        this.sendTokenRequestInternal(var4, var1);
+                        intent.removeExtra("registration_id");
+                        this.putIntentRespFor(reqId, intent);
                         return;
                      }
                   }
@@ -296,22 +296,22 @@ public final class ServiceHelper {
                      var3 = var3.substring(1);
                   }
 
-                  var1.putExtra("registration_id", var3);
+                  intent.putExtra("registration_id", var3);
                }
 
-               if(var4 == null) {
+               if(reqId == null) {
                   if(Log.isLoggable("InstanceID/Rpc", 3)) {
                      Log.d("InstanceID/Rpc", "Ignoring response without a request ID");
                   }
 
                } else {
-                  this.sendTokenRequestInternal(var4, var1);
+                  this.putIntentRespFor(reqId, intent);
                }
             } else {
                String var8;
                String var9;
-               if((var8 = var1.getStringExtra("error")) == null) {
-                  var9 = String.valueOf(var1.getExtras());
+               if((var8 = intent.getStringExtra("error")) == null) {
+                  var9 = String.valueOf(intent.getExtras());
                   Log.w("InstanceID/Rpc", (new StringBuilder(49 + String.valueOf(var9).length())).append("Unexpected response, no error or registration id ").append(var9).toString());
                } else {
                   if(Log.isLoggable("InstanceID/Rpc", 3)) {
@@ -336,12 +336,12 @@ public final class ServiceHelper {
                         var8 = "UNKNOWN";
                      }
 
-                     var1.putExtra("error", var8);
+                     intent.putExtra("error", var8);
                   }
 
                   this.putErrorResponseFor(var9, var8);
                   long var16;
-                  if((var16 = var1.getLongExtra("Retry-After", 0L)) > 0L) {
+                  if((var16 = intent.getLongExtra("Retry-After", 0L)) > 0L) {
                      this.retryStart = SystemClock.elapsedRealtime();
                      this.retryAfter = (int)var16 * 1000;
                      this.nextRetryTime = SystemClock.elapsedRealtime() + (long)this.retryAfter;
